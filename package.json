@@ -1,9 +1,13 @@
 {
-  "name": "alimns",
-  "version": "0.1.0",
+  "name": "alimns-client",
+  "version": "0.1.2",
   "description": "非官方阿里云mns node sdk",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/turengege/alimns"
+  },
   "scripts": {
     "build-ts": "tsc",
     "build": "npm run build-ts",

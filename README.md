@@ -3,7 +3,7 @@
 ## Usage
 
 ```typescript
-import {QueueAgent, Queue, AliAccount} from 'alimns'
+import {QueueAgent, Queue, AliAccount} from 'alimns-client'
 const account = new AliAccount('<accountId>', '<accessKey>','<accessSecret>');
 const queueAgent = new QueueAgent(account, '<region>');
 //发送队列消息
