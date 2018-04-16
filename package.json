@@ -1,0 +1,31 @@
+{
+  "name": "alimns",
+  "version": "0.1.0",
+  "description": "非官方阿里云mns node sdk",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build-ts": "tsc",
+    "build": "npm run build-ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/lodash": "^4.14.107",
+    "@types/node": "^9.6.5"
+  },
+  "bin": {
+    "alimns_queue_push": "./dist/bin/queue_push.js",
+    "alimns_queue_pop": "./dist/bin/queue_pop.js",
+    "alimns_queue_rec": "./dist/bin/queue_rec.js"
+  },
+  "dependencies": {
+    "debug": "^3.1.0",
+    "lodash": "^4.17.5",
+    "request": "^2.85.0",
+    "request-promise-native": "^1.0.5",
+    "xml": "^1.0.1",
+    "xml2js": "^0.4.19"
+  }
+}
