@@ -10,6 +10,7 @@ import * as _ from 'lodash'
  */
 export class QueueAgent extends MnsAgent {
     private _queueCache = {};
+
     /**
      * 根据队列名获取队列属性 
      * @param queueName 
@@ -43,7 +44,7 @@ export class Queue extends MnsAgent {
     }
     private queueName: string
     private opt: IQueueOpt = {
-        autoCommit: false,
+        autoDelete: false,
         waitseconds: 4,
         numberOfMessages: 1,
         delaySeconds: 0,
@@ -65,8 +66,6 @@ export class Queue extends MnsAgent {
         this.opt = _.defaultsDeep(opt || {}, this.opt);
     }
 
-    receiveMessage = this.pop.bind(this,1);
-    batchReceiveMessage = this.pop
 
     /**
      * 发送消息
@@ -134,16 +133,20 @@ export class Queue extends MnsAgent {
         return await this.http.post(`/queues/${this.queueName}/messages`, { body });
     }
 
+    receiveMessage = this.batchReceiveMessage.bind(this,1);
+
     /**
-     * 获取消息 
+     * 批量获取消息 
      * @param numOfMessages 
      * @param waitseconds 
-     * @param autoCommit 
+     * @param autoDelete 
      * @throws MnsException
      */
-    async pop(numOfMessages = this.opt.numberOfMessages,
-        waitseconds = this.opt.waitseconds,
-        autoCommit = this.opt.autoCommit): Promise<IQueueMessage[]> {
+    async batchReceiveMessage(numOfMessages = this.opt.numberOfMessages,
+        opt?:IReceiveOpt): Promise<IQueueMessage[]> {
+        const waitseconds = opt && opt.waitseconds || this.opt.waitseconds;
+        const autoDelete = opt && opt.autoDelete || this.opt.autoDelete;
+
         const resp = await this.http.get(`/queues/${this.queueName}/messages`,
             { queries: { waitseconds, numOfMessages }, timeout: waitseconds * 1000 + 5000 });
         let rt: IQueueMessage[] = [];
@@ -158,14 +161,14 @@ export class Queue extends MnsAgent {
             }
             for (let m of messages) {
                 let queueMsg = m as IQueueMessageResponse;
-                rt.push(this._addCommitMethod(queueMsg));
+                rt.push(this._addDeleteMethod(queueMsg));
             }
         }
         if (resp.body.Message) {
-            rt.push(this._addCommitMethod(resp.body.Message as IQueueMessageResponse));
+            rt.push(this._addDeleteMethod(resp.body.Message as IQueueMessageResponse));
         }
 
-        if (autoCommit || this.opt.autoCommit) {
+        if (autoDelete || this.opt.autoDelete) {
             let receiptHandles = rt.map(m => m.ReceiptHandle);
             if (receiptHandles && receiptHandles.length > 0)
                 await this.deleteBatchByReceiptHandles(receiptHandles);
@@ -178,29 +181,38 @@ export class Queue extends MnsAgent {
      * 开启循环轮训模式获取消息,消息会通过Queue.EVENTS.MESSAGE事件返回
      * @example queue.startReceiving();queue.on(Queue.EVENTS.MESSAGE,console.log);
      * @event 'message' 
-     * @param numberOfMessages 
-     * @param waitseconds 
-     * @param autoCommit 
+     * @param {number} numberOfMessages 
+     * @param {number} waitseconds 
+     * @param {boolean} autoDelete 
+     * @param {()=>boolean} condition 
      */
-    async startReceiving(numberOfMessages?, waitseconds?, autoCommit?) {
-        this._startPollingLoopPull(false, numberOfMessages, waitseconds, autoCommit);
+    async startReceiving(numberOfMessages?: number,
+        opt?: IReceiveOpt,
+        condition: () => boolean = () => true) {
+
+        this._startPollingLoopPull(condition, false, numberOfMessages, opt);
     }
+
 
     /**
-     * 不同于pop，该方法直到收到一个非空的消息，才会返回 
+     * 该方法会持续轮训直到收到一个非空的消息，才会返回 
      * @param numberOfMessages 
      * @param waitseconds 
-     * @param autoCommit 
+     * @param autoDelete 
      */
-    async waitMsg(numberOfMessages?, waitseconds?, autoCommit?) {
-        return await this._startPollingLoopPull(true, numberOfMessages, waitseconds, autoCommit);
+    async pop(numberOfMessages?, opt?:IReceiveOpt) {
+        return await this._startPollingLoopPull(() => true, true, numberOfMessages, opt);
     }
 
-    private async _startPollingLoopPull(oneshot: boolean, numberOfMessages?, waitseconds?, autoCommit?) {
+    private async _startPollingLoopPull(condition: () => boolean,
+        oneshot: boolean,
+        numberOfMessages?,
+        opt?: IReceiveOpt) {
+
         this.pollingLoopPull = true;
-        while (this.pollingLoopPull) {
+        while (this.pollingLoopPull && condition()) {
             try {
-                let msg = await this.pop(numberOfMessages, waitseconds, autoCommit);
+                let msg = await this.batchReceiveMessage(numberOfMessages, opt);
                 if (msg) {
                     if (oneshot) {
                         return msg;
@@ -252,9 +264,9 @@ export class Queue extends MnsAgent {
         const resp = await this.deleteByReceiptHandle(receiptHandle);
     }
 
-    private _addCommitMethod(queueMsg: IQueueMessageResponse): IQueueMessage {
+    private _addDeleteMethod(queueMsg: IQueueMessageResponse): IQueueMessage {
         const self = this;
-        (queueMsg as IQueueMessage).commit = async function () {
+        (queueMsg as IQueueMessage).delete= async function () {
             await self.deleteMsg(queueMsg);
         }
         return queueMsg as IQueueMessage;
@@ -266,7 +278,7 @@ export class Queue extends MnsAgent {
  */
 export interface IQueueMessage extends IQueueMessageResponse {
     //标记消息被消费
-    commit(): Promise<void>;
+    delete(): Promise<void>;
 }
 
 /**
@@ -274,9 +286,17 @@ export interface IQueueMessage extends IQueueMessageResponse {
  * NOTE: 该接口只是针对Queue对象的配置，阿里云队列属性见IQueueAttributes
  */
 export interface IQueueOpt {
-    autoCommit?: boolean
+    autoDelete?: boolean
     waitseconds?: number
     numberOfMessages?: number
     delaySeconds?: number
     priority?: number
+}
+
+/**
+ * 接收消息的配置
+ */
+export interface IReceiveOpt {
+    waitseconds?: number
+    autoDelete?: boolean
 }

@@ -1,6 +1,6 @@
 {
   "name": "alimns-client",
-  "version": "0.1.2",
+  "version": "0.1.5",
   "description": "非官方阿里云mns node sdk",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -20,9 +20,9 @@
     "@types/node": "^9.6.5"
   },
   "bin": {
-    "alimns_queue_push": "./dist/bin/queue_push.js",
-    "alimns_queue_pop": "./dist/bin/queue_pop.js",
-    "alimns_queue_rec": "./dist/bin/queue_rec.js"
+    "alimns queue push": "./dist/bin/queue_push.js",
+    "alimns queue pop": "./dist/bin/queue_pop.js",
+    "alimns queue rec": "./dist/bin/queue_rec.js"
   },
   "dependencies": {
     "debug": "^3.1.0",
