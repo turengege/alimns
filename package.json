@@ -1,6 +1,6 @@
 {
   "name": "alimns-client",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "非官方阿里云mns node sdk",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

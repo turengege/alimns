@@ -52,3 +52,4 @@ await topic.publish('a topic message!');
 ```
 
 ## Api
+[api](https://turengege.github.io/globals.html)
